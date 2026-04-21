@@ -63,7 +63,7 @@ export default function HeroSection() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="inline-flex items-center gap-3 px-4 py-2 rounded-full glass border border-green-500/30 mb-8 shadow-[0_0_20px_rgba(34,197,94,0.2)]"
+          className="inline-flex items-center gap-3 px-4 py-2 rounded-full glass border border-green-500/30 mt-32 mb-10 shadow-[0_0_20px_rgba(34,197,94,0.15)]"
         >
           <div className="relative">
             <span className="w-2.5 h-2.5 rounded-full bg-green-500 block" />
@@ -161,16 +161,7 @@ export default function HeroSection() {
         </motion.div>
       </div>
 
-      {/* Scroll indicator */}
-      <motion.a
-        href="#menu"
-        className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-gray-400 touch-manipulation"
-        animate={{ y: [0, 8, 0] }}
-        transition={{ duration: 2, repeat: Infinity }}
-      >
-        <span className="text-xs">Scroll</span>
-        <ChevronDown size={20} />
-      </motion.a>
+      {/* Scroll indicator removed */}
     </section>
   );
 }
