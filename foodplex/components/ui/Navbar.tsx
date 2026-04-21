@@ -56,25 +56,20 @@ export default function Navbar({ isStaff = false }: NavbarProps) {
         style={{ backgroundColor: scrolled ? 'rgba(15, 15, 15, 0.9)' : 'rgba(15, 15, 15, 0.7)' }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-4">
-            <a href={isStaff ? "#admin" : "#hero"} className="flex items-center gap-2 group touch-manipulation">
-              <motion.div
-                whileTap={{ scale: 0.9 }}
-                className="w-10 h-10 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center touch-manipulation"
-                style={{ background: 'linear-gradient(135deg, #FF6B2B, #FFD700)' }}
-              >
-                <Zap size={20} className="text-white" fill="white" />
-              </motion.div>
-              <span className="text-xl sm:text-xl font-black tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>
-                SNACK<span className="gradient-text">PLEX</span>
-                {isStaff && <span className="text-xs text-purple-400 ml-1">(Staff)</span>}
-              </span>
-            </a>
-            <div className="hidden xs:flex items-center gap-2 px-2 py-0.5 rounded-full glass border border-green-500/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-[10px] font-bold text-green-500 uppercase tracking-tight">Open</span>
-            </div>
-          </div>
+          {/* Logo */}
+          <a href={isStaff ? "#admin" : "#hero"} className="flex items-center gap-2 group touch-manipulation">
+            <motion.div
+              whileTap={{ scale: 0.9 }}
+              className="w-10 h-10 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center touch-manipulation"
+              style={{ background: 'linear-gradient(135deg, #FF6B2B, #FFD700)' }}
+            >
+              <Zap size={20} className="text-white" fill="white" />
+            </motion.div>
+            <span className="text-xl sm:text-xl font-black tracking-wider" style={{ fontFamily: 'Sora, sans-serif' }}>
+              SNACK<span className="gradient-text">PLEX</span>
+              {isStaff && <span className="text-xs text-purple-400 ml-1">(Staff)</span>}
+            </span>
+          </a>
 
           {/* Desktop Links */}
           <div className="hidden md:flex items-center gap-6 lg:gap-8">

@@ -58,8 +58,22 @@ export default function HeroSection() {
 
       {/* Main content */}
       <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-        {/* Badge */}
-         {/* Badge removed and moved to Navbar */}
+        {/* Canteen Status Badge */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="inline-flex items-center gap-3 px-4 py-2 rounded-full glass border border-green-500/30 mb-8 shadow-[0_0_20px_rgba(34,197,94,0.2)]"
+        >
+          <div className="relative">
+            <span className="w-2.5 h-2.5 rounded-full bg-green-500 block" />
+            <span className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-green-500 animate-ping opacity-75" />
+          </div>
+          <p className="text-sm font-bold tracking-wide">
+            <span className="text-green-400">CANTEEN IS OPEN NOW</span>
+            <span className="text-gray-500 ml-2">🕒 08:30 AM - 07:30 PM</span>
+          </p>
+        </motion.div>
 
         {/* Heading */}
         <motion.div
