@@ -59,16 +59,7 @@ export default function HeroSection() {
       {/* Main content */}
       <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
         {/* Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="inline-flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-full glass mb-5 sm:mb-6 text-xs sm:text-sm font-medium"
-        >
-          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-green-400">Canteen is Open Now</span>
-          <span className="text-gray-400 hidden sm:inline">· GSFC University</span>
-        </motion.div>
+         {/* Badge removed and moved to Navbar */}
 
         {/* Heading */}
         <motion.div
@@ -132,8 +123,6 @@ export default function HeroSection() {
           {[
             { icon: '📦', label: 'Orders Today', value: orders, suffix: '', live: true },
             { icon: '⏱️', label: 'Avg Wait', value: waitTime, suffix: ' min', live: true },
-            { icon: '⭐', label: 'Rating', value: 4.8, suffix: '/5', live: false },
-            { icon: '🍽️', label: 'Menu Items', value: 41, suffix: '+', live: false },
           ].map((stat, i) => (
             <motion.div
               key={i}

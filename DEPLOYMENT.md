@@ -15,7 +15,7 @@ This guide provides step-by-step instructions for hosting your full-stack cantee
 2. **Configure Build Settings**:
    - **Base directory**: `foodplex`
    - **Build command**: `npm run build`
-   - **Publish directory**: `foodplex/.next` (or keep default if it detects Next.js)
+   - **Publish directory**: `.next`
 3. **Environment Variables**: Add these in Netlify (Site Settings > Environment variables):
    - `NEXT_PUBLIC_API_URL`: Your Backend URL (e.g., `https://snackplex-api.onrender.com`)
    - `NEXT_PUBLIC_RAZORPAY_KEY_ID`: Your Razorpay Live Key ID.

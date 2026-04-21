@@ -50,10 +50,6 @@ function MenuCard({ item, index, onSelect }: { item: MenuItem; index: number; on
       <div className="p-4 sm:p-5">
         <div className="flex items-start justify-between gap-2 mb-2">
           <h3 className="font-bold text-sm sm:text-base leading-snug" style={{ fontFamily: 'Sora, sans-serif' }}>{item.name}</h3>
-          <div className="flex items-center gap-1 text-yellow-400 shrink-0 mt-0.5">
-            <Star size={11} fill="currentColor" />
-            <span className="text-xs font-semibold">{item.rating}</span>
-          </div>
         </div>
         <p className="text-xs text-gray-400 mb-3 sm:mb-4 leading-relaxed line-clamp-2">{item.description}</p>
         <div className="flex items-center justify-between mt-auto">
@@ -106,11 +102,6 @@ function ItemModal({ item, onClose }: { item: MenuItem | null; onClose: () => vo
                   </button>
                 </div>
                 <div className="flex items-center gap-2 sm:gap-3 mb-4 flex-wrap">
-                  <div className="flex items-center gap-1 text-yellow-400">
-                    <Star size={14} fill="currentColor" />
-                    <span className="font-semibold text-sm">{item.rating}</span>
-                  </div>
-                  <span className="text-gray-500 text-sm">|</span>
                   <span className="text-gray-400 text-sm">{item.quantity}</span>
                   <span className="text-xs text-green-400 glass px-2 py-0.5 rounded-full flex items-center gap-1">
                     <Leaf size={9} /> Veg
@@ -186,8 +177,7 @@ export default function MenuSection() {
           ))}
         </div>
 
-        {/* Items Count */}
-        <p className="text-gray-500 text-sm mb-6">{filtered.length} items available</p>
+        {/* Items Count Removed */}
 
         {/* Grid */}
         <motion.div
