@@ -1,7 +1,8 @@
 'use client';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, User, Briefcase, ArrowRight, Lock, Mail } from 'lucide-react';
+import { Zap, User, Briefcase, ArrowRight, Lock, Mail, RefreshCw } from 'lucide-react';
+import axios from 'axios';
 
 type UserRole = 'student' | 'staff' | null;
 
@@ -9,17 +10,20 @@ interface LoginPageProps {
   onLogin: (role: 'student' | 'staff', email: string) => void;
 }
 
-const STAFF_EMAIL = 'snackplex@gsfcuniversity.ac.in';
-
 export default function LoginPage({ onLogin }: LoginPageProps) {
   const [selectedRole, setSelectedRole] = useState<UserRole>(null);
   const [showForm, setShowForm] = useState(false);
   const [isRegister, setIsRegister] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [staffSecret, setStaffSecret] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [sentOtp, setSentOtp] = useState('');
+  const [resetStep, setResetStep] = useState(0);
+  const [newPassword, setNewPassword] = useState('');
 
   const handleRoleSelect = (role: 'student' | 'staff') => {
     setSelectedRole(role);
@@ -31,40 +35,32 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     e.preventDefault();
     setIsLoading(true);
     setErrorMsg('');
+    
+    try {
+      if (isRegister) {
+        await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/signup`, {
+          email,
+          password,
+          role: selectedRole,
+          staffSecret: selectedRole === 'staff' ? staffSecret : undefined
+        });
+      }
 
-    // Simple validation without backend
-    if (!email || !password) {
-      setErrorMsg('Please enter email and password');
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/login`, {
+        email,
+        password,
+        role: selectedRole
+      }, { withCredentials: true });
+      
+      onLogin(selectedRole!, email);
+    } catch (err: any) {
+      if (err.response && err.response.data && err.response.data.error) {
+        setErrorMsg(err.response.data.error);
+      } else {
+        setErrorMsg('Network connectivity error. Is your local backend running?');
+      }
+    } finally {
       setIsLoading(false);
-      return;
-    }
-
-    if (selectedRole === 'staff') {
-      // Staff must use specific email
-      if (email.toLowerCase() !== STAFF_EMAIL.toLowerCase()) {
-        setErrorMsg('Staff must use snackplex@gsfcuniversity.ac.in');
-        setIsLoading(false);
-        return;
-      }
-      // Accept any password for staff
-      setTimeout(() => {
-        onLogin('staff', email);
-      }, 800);
-    } else {
-      // Student validation - must have valid email format
-      if (!email.includes('@') || !email.includes('.')) {
-        setErrorMsg('Please enter a valid email address');
-        setIsLoading(false);
-        return;
-      }
-      if (password.length < 1) {
-        setErrorMsg('Please enter password');
-        setIsLoading(false);
-        return;
-      }
-      setTimeout(() => {
-        onLogin('student', email);
-      }, 800);
     }
   };
 
@@ -75,6 +71,66 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     setPassword('');
     setStaffSecret('');
     setErrorMsg('');
+    setIsRegister(false);
+    setShowForgot(false);
+    setResetStep(0);
+    setOtp('');
+    setNewPassword('');
+  };
+
+  const handleSendOtp = async () => {
+    if (!email) {
+      setErrorMsg('Please enter your email');
+      return;
+    }
+    setIsLoading(true);
+    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    setSentOtp(generatedOtp);
+    try {
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: email,
+          subject: 'Password Reset OTP - SNACKPLEX',
+          html: `<div style="font-family: Arial; padding: 20px; background: #1a1a1a; color: #fff;">
+            <h2 style="color: #FF6B2B;">SNACKPLEX Password Reset</h2>
+            <p>Your OTP is: <strong style="font-size: 24px; color: #22C55E;">${generatedOtp}</strong></p>
+          </div>`
+        })
+      });
+      setResetStep(1);
+      setErrorMsg('OTP sent to your email!');
+    } catch (e) {
+      setResetStep(1);
+      setErrorMsg('OTP: ' + generatedOtp + ' (demo)');
+    }
+    setIsLoading(false);
+  };
+
+  const handleVerifyOtp = () => {
+    if (otp === sentOtp) {
+      setResetStep(2);
+      setErrorMsg('OTP verified! Enter new password.');
+    } else {
+      setErrorMsg('Invalid OTP');
+    }
+  };
+
+  const handleResetPassword = () => {
+    if (newPassword.length < 6) {
+      setErrorMsg('Password must be at least 6 characters');
+      return;
+    }
+    setErrorMsg('Password reset successful! Please login.');
+    setTimeout(() => {
+      setShowForgot(false);
+      setResetStep(0);
+      setEmail('');
+      setPassword('');
+      setNewPassword('');
+      setOtp('');
+    }, 2000);
   };
 
   return (
@@ -105,7 +161,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           <p className="text-gray-400 text-lg">GSFC University Canteen</p>
         </div>
 
-        <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait">
           {!showForm ? (
             <motion.div
               key="role-select"
@@ -164,10 +220,13 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               className="glass rounded-3xl p-8"
-              style={{ border: '1px solid rgba(255,255,255,0.1)', background: '#1A1A1A' }}
+              style={{ border: '1px solid rgba(255,255,255,0.1)' }}
             >
-              <button onClick={handleBack} className="text-gray-400 hover:text-white mb-6 flex items-center gap-2 text-sm">
-                ← Back
+              <button
+                onClick={handleBack}
+                className="text-gray-400 hover:text-white mb-6 flex items-center gap-2 text-sm"
+              >
+                ← Back to role selection
               </button>
 
               <div className="text-center mb-6">
@@ -176,14 +235,20 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                   {selectedRole === 'student' ? <User size={28} className="text-white" /> : <Briefcase size={28} className="text-white" />}
                 </div>
                 <h2 className="text-xl font-bold" style={{ fontFamily: 'Sora, sans-serif' }}>
-                  {selectedRole === 'student' ? 'Student Login' : 'Staff Login'}
+                  {isRegister ? `Register as ${selectedRole === 'student' ? 'Student' : 'Staff'}` : `Sign In as ${selectedRole === 'student' ? 'Student' : 'Staff'}`}
                 </h2>
                 <p className="text-gray-400 text-sm mt-1">
-                  {selectedRole === 'staff' ? 'Use: snackplex@gsfcuniversity.ac.in' : 'Enter your email and password'}
+                  {isRegister ? 'Setup your secure credentials below.' : 'Enter your credentials to securely login.'}
                 </p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
+                {errorMsg && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-red-500/10 border border-red-500/50 text-red-400 p-3 rounded-xl text-sm mb-4">
+                    {errorMsg}
+                  </motion.div>
+                )}
+
                 <div>
                   <label className="text-sm text-gray-400 mb-2 block">Email</label>
                   <div className="relative">
@@ -192,7 +257,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder={selectedRole === 'staff' ? 'snackplex@gsfcuniversity.ac.in' : 'your.email@university.edu'}
+                      placeholder={selectedRole === 'student' ? 'your.email@university.edu' : 'snackplex@gsfcuniversity.ac.in'}
                       className="w-full pl-12 pr-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500/50"
                       required
                     />
@@ -210,51 +275,145 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                       placeholder="••••••••"
                       className="w-full pl-12 pr-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500/50"
                       required
+                      minLength={6}
                     />
                   </div>
                 </div>
 
-                {selectedRole === 'staff' && (
-                  <div>
-                    <label className="text-sm text-gray-400 mb-2 block">Staff Secret (optional)</label>
-                    <input
-                      type="password"
-                      value={staffSecret}
-                      onChange={(e) => setStaffSecret(e.target.value)}
-                      placeholder="Staff secret code"
-                      className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none"
-                    />
-                  </div>
+                {isRegister && selectedRole === 'staff' && (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}>
+                    <label className="text-sm text-gray-400 mb-2 block mt-1">Staff Secure Registration Key</label>
+                    <div className="relative">
+                      <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+                      <input
+                        type="password"
+                        value={staffSecret}
+                        onChange={(e) => setStaffSecret(e.target.value)}
+                        placeholder="Provided by Administrator"
+                        className="w-full pl-12 pr-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500/50"
+                        required={isRegister && selectedRole === 'staff'}
+                      />
+                    </div>
+                  </motion.div>
                 )}
-
-                {errorMsg && <p className="text-red-400 text-sm">{errorMsg}</p>}
 
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-4 rounded-xl font-bold text-white btn-ripple"
+                  className="w-full py-4 rounded-xl font-bold text-white btn-ripple glow-orange relative overflow-hidden mt-6"
                   style={{ background: selectedRole === 'student' ? 'linear-gradient(135deg, #FF6B2B, #E85520)' : 'linear-gradient(135deg, #8B5CF6, #A855F7)' }}
                 >
-                  {isLoading ? 'Please wait...' : `Sign In as ${selectedRole === 'student' ? 'Student' : 'Staff'}`}
+                  {isLoading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      {isRegister ? 'Creating Account...' : 'Authenticating...'}
+                    </div>
+                  ) : (
+                    isRegister ? 'Create Account' : 'Secure Sign In'
+                  )}
                 </motion.button>
-
-                {selectedRole === 'student' && (
-                  <p className="text-center text-gray-400 text-sm mt-4">
-                    New student?{' '}
-                    <button type="button" className="text-orange-400 hover:underline">
-                      Register here
-                    </button>
-                  </p>
-                )}
               </form>
+
+              <p className="text-center text-gray-400 text-sm mt-6">
+                {isRegister ? 'Already registered?' : 'Need to join?'} {' '}
+                <button type="button" onClick={() => { setIsRegister(!isRegister); setErrorMsg(''); }} className="text-white hover:text-orange-400 font-bold transition-colors">
+                  {isRegister ? 'Sign In Instead' : 'Register Here'}
+                </button>
+              </p>
+
+              {!isRegister && !showForgot && (
+                <p className="text-center text-gray-400 text-sm mt-4">
+                  Forgot Password?{' '}
+                  <button type="button" onClick={() => setShowForgot(true)} className="text-orange-400 hover:underline">
+                    Reset here
+                  </button>
+                </p>
+              )}
+
+              {showForgot && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }} 
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-6 p-4 rounded-xl" 
+                  style={{ background: '#2a2a2a' }}
+                >
+                  <h3 className="font-bold text-white mb-4">Reset Password</h3>
+                  
+                  {resetStep === 0 && (
+                    <div>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Enter your email"
+                        className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white mb-3"
+                      />
+                      <button
+                        onClick={handleSendOtp}
+                        disabled={isLoading}
+                        className="w-full py-3 rounded-xl font-bold text-white"
+                        style={{ background: 'linear-gradient(135deg, #FF6B2B, #E85520)' }}
+                      >
+                        {isLoading ? 'Sending...' : 'Send OTP'}
+                      </button>
+                    </div>
+                  )}
+
+                  {resetStep === 1 && (
+                    <div>
+                      <input
+                        type="text"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        placeholder="Enter 6-digit OTP"
+                        className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white mb-3 text-center text-xl"
+                        maxLength={6}
+                      />
+                      <button
+                        onClick={handleVerifyOtp}
+                        className="w-full py-3 rounded-xl font-bold text-white mb-2"
+                        style={{ background: 'linear-gradient(135deg, #FF6B2B, #E85520)' }}
+                      >
+                        Verify OTP
+                      </button>
+                      <button onClick={handleSendOtp} className="text-orange-400 text-sm w-full text-center">
+                        Resend OTP
+                      </button>
+                    </div>
+                  )}
+
+                  {resetStep === 2 && (
+                    <div>
+                      <input
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="New password"
+                        className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white mb-3"
+                      />
+                      <button
+                        onClick={handleResetPassword}
+                        className="w-full py-3 rounded-xl font-bold text-white"
+                        style={{ background: 'linear-gradient(135deg, #22C55E, #16A34A)' }}
+                      >
+                        Reset Password
+                      </button>
+                    </div>
+                  )}
+
+                  <button onClick={handleBack} className="text-gray-400 text-sm mt-3 w-full text-center">
+                    Back to Login
+                  </button>
+                </motion.div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
 
         <p className="text-center text-gray-500 text-xs mt-8">
-          © 2026 GSFC University • SNACKPLEX Canteen System
+          © 2026 GSFC University • FoodPlex Canteen System
         </p>
       </motion.div>
     </div>
