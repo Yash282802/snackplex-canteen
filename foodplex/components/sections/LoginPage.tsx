@@ -10,6 +10,19 @@ interface LoginPageProps {
   onLogin: (role: 'student' | 'staff', email: string) => void;
 }
 
+const STAFF_EMAIL_PATTERN = /^[a-zA-Z0-9._%+-]+@gsfcuniversity\.ac\.in$/;
+
+function validateCredentials(email: string, password: string, role: 'student' | 'staff'): boolean {
+  if (!password || password.length < 1) return false;
+  
+  if (role === 'staff') {
+    return STAFF_EMAIL_PATTERN.test(email);
+  }
+  
+  // Student can login with any email that has a password
+  return email.includes('@') && password.length > 0;
+}
+
 export default function LoginPage({ onLogin }: LoginPageProps) {
   const [mode, setMode] = useState<AuthMode>('role');
   const [selectedRole, setSelectedRole] = useState<UserRole>(null);
@@ -33,9 +46,20 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     setIsLoading(true);
     setErrorMsg('');
     
-    setTimeout(() => {
-      onLogin(selectedRole!, email);
-    }, 800);
+    const isValid = validateCredentials(email, password, selectedRole!);
+    
+    if (isValid) {
+      setTimeout(() => {
+        onLogin(selectedRole!, email);
+      }, 800);
+    } else {
+      if (selectedRole === 'staff') {
+        setErrorMsg('Staff must use @gsfcuniversity.ac.in email');
+      } else {
+        setErrorMsg('Invalid email or password. Please try again.');
+      }
+      setIsLoading(false);
+    }
   };
 
   const handleSendOtp = async () => {
@@ -84,7 +108,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     }
   };
 
-  const handleResetPassword = () => {
+const handleResetPassword = () => {
     if (newPassword !== confirmPassword) {
       setMessage('Passwords do not match');
       return;
@@ -93,7 +117,9 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       setMessage('Password must be at least 6 characters');
       return;
     }
-    setMessage('Password reset successful! Please login.');
+    
+    // In demo mode, just show success
+    setMessage('Password reset successful! Please login with your new password.');
     setTimeout(() => {
       setMode('login');
       setEmail('');
