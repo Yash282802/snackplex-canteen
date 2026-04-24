@@ -13,14 +13,16 @@ interface LoginPageProps {
 const STAFF_EMAIL_PATTERN = /^[a-zA-Z0-9._%+-]+@gsfcuniversity\.ac\.in$/;
 
 function validateCredentials(email: string, password: string, role: 'student' | 'staff'): boolean {
-  if (!password || password.length < 1) return false;
+  // Both need password
+  if (!password || password.length === 0) return false;
   
   if (role === 'staff') {
+    // Staff must use @gsfcuniversity.ac.in email
     return STAFF_EMAIL_PATTERN.test(email);
   }
   
-  // Student can login with any email that has a password
-  return email.includes('@') && password.length > 0;
+  // Student must have valid email with @
+  return email.includes('@') && email.includes('.');
 }
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
