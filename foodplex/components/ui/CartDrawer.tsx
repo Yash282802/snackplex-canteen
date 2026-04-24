@@ -177,7 +177,9 @@ export default function CartDrawer({ open, onClose }: Props) {
                     exit={{ opacity: 0, x: 20 }}
                     className="glass rounded-xl p-3 flex items-center gap-2 sm:gap-3"
                   >
-                    <div className="text-xl sm:text-2xl">{item.emoji}</div>
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden shrink-0 bg-[#1a1a1a]">
+                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm truncate">{item.name}</p>
                       <p className="text-orange-400 text-sm font-bold">

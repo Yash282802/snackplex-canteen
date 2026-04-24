@@ -371,7 +371,7 @@ export default function AdminSection() {
                   ) : (
                     orders.map((order, i) => {
                       const statusOptions: Order['status'][] = ['placed', 'preparing', 'ready', 'delivered'];
-                      const itemsStr = order.items.map(item => `${item.emoji} ${item.name} x${item.qty}`).join(', ');
+                      const itemsStr = order.items.map(item => `${item.name} x${item.qty}`).join(', ');
                       return (
                         <tr key={i} className="border-b border-white/5 hover:bg-white/5">
                           <td className="py-3 px-3 font-mono text-orange-400 text-xs">{order.id}</td>
