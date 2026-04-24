@@ -10,14 +10,14 @@ interface LoginPageProps {
   onLogin: (role: 'student' | 'staff', email: string) => void;
 }
 
-const STAFF_EMAIL_PATTERN = /^[a-zA-Z0-9._%+-]+@gsfcuniversity\.ac\.in$/;
+const STAFF_EMAIL_PATTERN = /^snackplex@gsfcuniversity\.ac\.in$/;
 
 function validateCredentials(email: string, password: string, role: 'student' | 'staff'): boolean {
   // Both need password
   if (!password || password.length === 0) return false;
   
   if (role === 'staff') {
-    // Staff must use @gsfcuniversity.ac.in email
+    // Staff must use snackplex@gsfcuniversity.ac.in email
     return STAFF_EMAIL_PATTERN.test(email);
   }
   
@@ -56,7 +56,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       }, 800);
     } else {
       if (selectedRole === 'staff') {
-        setErrorMsg('Staff must use @gsfcuniversity.ac.in email');
+        setErrorMsg('Staff must use snackplex@gsfcuniversity.ac.in email');
       } else {
         setErrorMsg('Invalid email or password. Please try again.');
       }
