@@ -5,7 +5,7 @@ import axios from 'axios';
 export interface Order {
   id: string;
   email: string;
-  items: { name: string; price: number; qty: number; emoji: string; image: string }[];
+  items: { name: string; price: number; qty: number; emoji: string; image?: string }[];
   total: number;
   status: 'placed' | 'preparing' | 'ready' | 'delivered';
   createdAt: string;

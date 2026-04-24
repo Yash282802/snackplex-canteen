@@ -42,12 +42,21 @@ function MenuCard({ item, index, onSelect }: { item: MenuItem; index: number; on
 
       {/* Image display */}
       <div className="flex items-center justify-center h-28 sm:h-32 group-hover:scale-110 transition-transform duration-500 relative overflow-hidden bg-[#1a1a1a]">
-        <img 
-          src={item.image} 
-          alt={item.name} 
-          className="w-full h-full object-cover transition-opacity duration-300"
-          loading="lazy"
-        />
+        {item.image ? (
+          <img 
+            src={item.image} 
+            alt={item.name} 
+            className="w-full h-full object-cover transition-opacity duration-300"
+            loading="lazy"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+              (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+            }}
+          />
+        ) : null}
+        <div className={`absolute inset-0 flex items-center justify-center text-5xl sm:text-6xl ${item.image ? 'hidden' : ''}`}>
+          {item.emoji}
+        </div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       </div>
 
@@ -96,11 +105,20 @@ function ItemModal({ item, onClose }: { item: MenuItem | null; onClose: () => vo
             <div className="w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[90vh] flex flex-col"
               style={{ background: '#1e1e1e', border: '1px solid rgba(255,107,43,0.3)' }}>
               <div className="flex items-center justify-center h-36 sm:h-44 shrink-0 relative overflow-hidden bg-[#1a1a1a]">
-                <img 
-                  src={item.image} 
-                  alt={item.name} 
-                  className="w-full h-full object-cover"
-                />
+                {item.image ? (
+                  <img 
+                    src={item.image} 
+                    alt={item.name} 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                      (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                    }}
+                  />
+                ) : null}
+                <div className={`absolute inset-0 flex items-center justify-center text-6xl sm:text-7xl ${item.image ? 'hidden' : ''}`}>
+                  {item.emoji}
+                </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent" />
               </div>
               <div className="p-5 sm:p-6 overflow-y-auto">
