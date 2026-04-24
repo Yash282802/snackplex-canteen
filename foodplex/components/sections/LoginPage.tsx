@@ -306,6 +306,20 @@ const handleResetPassword = () => {
                 >
                   {isLoading ? 'Signing in...' : `Sign In as ${selectedRole === 'student' ? 'Student' : 'Staff'}`}
                 </motion.button>
+
+                {selectedRole === 'student' && (
+                  <p className="text-center text-gray-400 text-sm mt-4">
+                    New student?{' '}
+                    <button
+                      type="button"
+                      onClick={() => { setEmail(''); setPassword(''); alert('Registration coming soon!'); }}
+                      className="text-orange-400 hover:underline font-medium"
+                    >
+                      Register here
+                    </button>
+                  </p>
+                )}
+                </motion.button>
               </form>
             </motion.div>
           )}
