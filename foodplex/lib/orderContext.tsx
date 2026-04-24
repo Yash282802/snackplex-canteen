@@ -195,8 +195,56 @@ export function OrderProvider({ children }: { children: ReactNode }) {
     } catch (e) { console.log('Excel update error:', e); }
     
     const order = orders.find(o => o.id === id);
-    if (order && status === 'delivered') {
-      await sendEmail(order.email, `Order Delivered - ${id} | SNACKPLEX`, getOrderEmailHtml(order, 'delivery'));
+    if (order) {
+      if (status === 'delivered') {
+        // Send delivery confirmation email
+        await sendEmail(order.email, `Order Delivered - ${id} | SNACKPLEX`, getOrderEmailHtml(order, 'delivery'));
+        
+        // Generate and send OTP for delivery confirmation
+        const deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
+        await sendEmail(
+          order.email,
+          `🎉 Your Order is Ready for Pickup! - ${id} | SNACKPLEX`,
+          `
+          <div style="font-family: Arial, padding: 20px; background: #1a1a1a; color: #fff;">
+            <h2 style="color: #22C55E;">🎉 Order Ready for Pickup!</h2>
+            <p>Your order <strong>${id}</strong> is ready!</p>
+            <p>Show this OTP at the counter to collect your order:</p>
+            <h1 style="font-size: 48px; letter-spacing: 12px; color: #FFD700; margin: 20px 0;">${deliveryOtp}</h1>
+            <p style="color: #888; font-size: 12px;">Please collect within 30 minutes.</p>
+            <p style="margin-top: 20px;">Thank you for ordering with <strong>SNACKPLEX</strong>!</p>
+          </div>
+          `
+        );
+      } else if (status === 'ready') {
+        // Send "order ready" notification
+        await sendEmail(
+          order.email,
+          `✅ Your Order is Ready! - ${id} | SNACKPLEX`,
+          `
+          <div style="font-family: Arial, padding: 20px; background: #1a1a1a; color: #fff;">
+            <h2 style="color: #22C55E;">✅ Your Order is Ready!</h2>
+            <p>Order ID: <strong>${id}</strong></p>
+            <p>Your order is prepared and waiting for you at the counter!</p>
+            <p style="color: #888;">Please collect your order soon.</p>
+          </div>
+          `
+        );
+      } else if (status === 'preparing') {
+        // Send "order being prepared" notification
+        await sendEmail(
+          order.email,
+          `🔥 Your Order is Being Prepared - ${id} | SNACKPLEX`,
+          `
+          <div style="font-family: Arial, padding: 20px; background: #1a1a1a; color: #fff;">
+            <h2 style="color: #F59E0B;">🔥 Order Being Prepared</h2>
+            <p>Order ID: <strong>${id}</strong></p>
+            <p>Your order is now being prepared by our chefs!</p>
+            <p style="color: #888;">We'll notify you when it's ready.</p>
+          </div>
+          `
+        );
+      }
     }
   };
 

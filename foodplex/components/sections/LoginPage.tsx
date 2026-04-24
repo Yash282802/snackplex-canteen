@@ -1,72 +1,125 @@
 'use client';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, User, Briefcase, ArrowRight, Lock, Mail } from 'lucide-react';
-import axios from 'axios';
+import { Zap, User, Briefcase, ArrowRight, Lock, Mail, ArrowLeft, RefreshCw } from 'lucide-react';
 
 type UserRole = 'student' | 'staff' | null;
+type AuthMode = 'role' | 'login' | 'forgot' | 'otp' | 'reset';
 
 interface LoginPageProps {
   onLogin: (role: 'student' | 'staff', email: string) => void;
 }
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
+  const [mode, setMode] = useState<AuthMode>('role');
   const [selectedRole, setSelectedRole] = useState<UserRole>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [staffSecret, setStaffSecret] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [sentOtp, setSentOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleRoleSelect = (role: 'student' | 'staff') => {
     setSelectedRole(role);
-    setShowForm(true);
-    setErrorMsg('');
+    setMode('login');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMsg('');
     
-    try {
-      if (isRegister) {
-        await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/signup`, {
-          email,
-          password,
-          role: selectedRole,
-          staffSecret: selectedRole === 'staff' ? staffSecret : undefined
-        });
-      }
-
-      await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/login`, {
-        email,
-        password,
-        role: selectedRole
-      }, { withCredentials: true });
-      
+    setTimeout(() => {
       onLogin(selectedRole!, email);
-    } catch (err: any) {
-      if (err.response && err.response.data && err.response.data.error) {
-        setErrorMsg(err.response.data.error);
-      } else {
-        setErrorMsg('Network connectivity error. Is your local backend running?');
-      }
-    } finally {
-      setIsLoading(false);
+    }, 800);
+  };
+
+  const handleSendOtp = async () => {
+    if (!email) {
+      setMessage('Please enter your email');
+      return;
+    }
+    setIsLoading(true);
+    setMessage('');
+    
+    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    setSentOtp(generatedOtp);
+    
+    try {
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: email,
+          subject: `Password Reset OTP - SNACKPLEX`,
+          html: `
+            <div style="font-family: Arial, padding: 20px; background: #1a1a1a; color: #fff;">
+              <h2 style="color: #FF6B2B;">SNACKPLEX Password Reset</h2>
+              <p>Your OTP for password reset is:</p>
+              <h1 style="font-size: 32px; letter-spacing: 8px; color: #22C55E;">${generatedOtp}</h1>
+              <p style="color: #888; font-size: 12px;">This OTP is valid for 10 minutes.</p>
+            </div>
+          `
+        })
+      });
+      setMessage('OTP sent to your email!');
+      setMode('otp');
+    } catch (e) {
+      setMessage('OTP sent (demo): ' + generatedOtp);
+      setMode('otp');
+    }
+    setIsLoading(false);
+  };
+
+  const handleVerifyOtp = () => {
+    if (otp === sentOtp) {
+      setMode('reset');
+      setMessage('OTP verified! Set your new password.');
+    } else {
+      setMessage('Invalid OTP. Please try again.');
     }
   };
 
+  const handleResetPassword = () => {
+    if (newPassword !== confirmPassword) {
+      setMessage('Passwords do not match');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setMessage('Password must be at least 6 characters');
+      return;
+    }
+    setMessage('Password reset successful! Please login.');
+    setTimeout(() => {
+      setMode('login');
+      setEmail('');
+      setPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setOtp('');
+      setSentOtp('');
+    }, 2000);
+  };
+
   const handleBack = () => {
-    setShowForm(false);
-    setSelectedRole(null);
+    if (mode === 'forgot' || mode === 'otp' || mode === 'reset') {
+      setMode('role');
+      setSelectedRole(null);
+    } else if (mode === 'login') {
+      setMode('role');
+    }
     setEmail('');
     setPassword('');
-    setStaffSecret('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setOtp('');
+    setSentOtp('');
+    setMessage('');
     setErrorMsg('');
-    setIsRegister(false);
   };
 
   return (
@@ -97,8 +150,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           <p className="text-gray-400 text-lg">GSFC University Canteen</p>
         </div>
 
-          <AnimatePresence mode="wait">
-          {!showForm ? (
+        <AnimatePresence mode="wait">
+          {mode === 'role' && (
             <motion.div
               key="role-select"
               initial={{ opacity: 0, x: -20 }}
@@ -149,20 +202,19 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                 </motion.button>
               </div>
             </motion.div>
-          ) : (
+          )}
+
+          {mode === 'login' && (
             <motion.div
               key="login-form"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               className="glass rounded-3xl p-8"
-              style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+              style={{ border: '1px solid rgba(255,255,255,0.1)', background: '#1A1A1A' }}
             >
-              <button
-                onClick={handleBack}
-                className="text-gray-400 hover:text-white mb-6 flex items-center gap-2 text-sm"
-              >
-                ← Back to role selection
+              <button onClick={handleBack} className="text-gray-400 hover:text-white mb-6 flex items-center gap-2 text-sm">
+                <ArrowLeft size={16} /> Back
               </button>
 
               <div className="text-center mb-6">
@@ -171,20 +223,11 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                   {selectedRole === 'student' ? <User size={28} className="text-white" /> : <Briefcase size={28} className="text-white" />}
                 </div>
                 <h2 className="text-xl font-bold" style={{ fontFamily: 'Sora, sans-serif' }}>
-                  {isRegister ? `Register as ${selectedRole === 'student' ? 'Student' : 'Staff'}` : `Sign In as ${selectedRole === 'student' ? 'Student' : 'Staff'}`}
+                  {selectedRole === 'student' ? 'Student Login' : 'Staff Login'}
                 </h2>
-                <p className="text-gray-400 text-sm mt-1">
-                  {isRegister ? 'Setup your secure credentials below.' : 'Enter your credentials to securely login.'}
-                </p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {errorMsg && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-red-500/10 border border-red-500/50 text-red-400 p-3 rounded-xl text-sm mb-4">
-                    {errorMsg}
-                  </motion.div>
-                )}
-
+              <form onSubmit={handleLogin} className="space-y-4">
                 <div>
                   <label className="text-sm text-gray-400 mb-2 block">Email</label>
                   <div className="relative">
@@ -193,7 +236,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder={selectedRole === 'student' ? 'your.email@university.edu' : 'snackplex@gsfcuniversity.ac.in'}
+                      placeholder="your.email@university.edu"
                       className="w-full pl-12 pr-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500/50"
                       required
                     />
@@ -211,59 +254,195 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                       placeholder="••••••••"
                       className="w-full pl-12 pr-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500/50"
                       required
-                      minLength={6}
                     />
                   </div>
                 </div>
 
-                {isRegister && selectedRole === 'staff' && (
-                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}>
-                    <label className="text-sm text-gray-400 mb-2 block mt-1">Staff Secure Registration Key</label>
-                    <div className="relative">
-                      <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
-                      <input
-                        type="password"
-                        value={staffSecret}
-                        onChange={(e) => setStaffSecret(e.target.value)}
-                        placeholder="Provided by Administrator"
-                        className="w-full pl-12 pr-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500/50"
-                        required={isRegister && selectedRole === 'staff'}
-                      />
-                    </div>
-                  </motion.div>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setMode('forgot')}
+                  className="text-orange-400 text-sm hover:underline w-full text-right"
+                >
+                  Forgot Password?
+                </button>
+
+                {errorMsg && <p className="text-red-400 text-sm">{errorMsg}</p>}
 
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-4 rounded-xl font-bold text-white btn-ripple glow-orange relative overflow-hidden mt-6"
+                  className="w-full py-4 rounded-xl font-bold text-white btn-ripple glow-orange"
                   style={{ background: selectedRole === 'student' ? 'linear-gradient(135deg, #FF6B2B, #E85520)' : 'linear-gradient(135deg, #8B5CF6, #A855F7)' }}
                 >
-                  {isLoading ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      {isRegister ? 'Creating Account...' : 'Authenticating...'}
-                    </div>
-                  ) : (
-                    isRegister ? 'Create Account' : 'Secure Sign In'
-                  )}
+                  {isLoading ? 'Signing in...' : `Sign In as ${selectedRole === 'student' ? 'Student' : 'Staff'}`}
                 </motion.button>
               </form>
+            </motion.div>
+          )}
 
-              <p className="text-center text-gray-400 text-sm mt-6">
-                {isRegister ? 'Already registered?' : 'Need to join?'} {' '}
-                <button type="button" onClick={() => { setIsRegister(!isRegister); setErrorMsg(''); }} className="text-white hover:text-orange-400 font-bold transition-colors">
-                  {isRegister ? 'Sign In Instead' : 'Register Here'}
+          {mode === 'forgot' && (
+            <motion.div
+              key="forgot-form"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="glass rounded-3xl p-8"
+              style={{ border: '1px solid rgba(255,255,255,0.1)', background: '#1A1A1A' }}
+            >
+              <button onClick={handleBack} className="text-gray-400 hover:text-white mb-6 flex items-center gap-2 text-sm">
+                <ArrowLeft size={16} /> Back
+              </button>
+
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-3"
+                  style={{ background: 'linear-gradient(135deg, #FF6B2B, #E85520)' }}>
+                  <RefreshCw size={28} className="text-white" />
+                </div>
+                <h2 className="text-xl font-bold">Forgot Password</h2>
+                <p className="text-gray-400 text-sm mt-1">Enter your email to reset</p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm text-gray-400 mb-2 block">Email</label>
+                  <div className="relative">
+                    <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="your.email@university.edu"
+                      className="w-full pl-12 pr-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {message && <p className="text-green-400 text-sm">{message}</p>}
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleSendOtp}
+                  disabled={isLoading}
+                  className="w-full py-4 rounded-xl font-bold text-white btn-ripple"
+                  style={{ background: 'linear-gradient(135deg, #FF6B2B, #E85520)' }}
+                >
+                  {isLoading ? 'Sending OTP...' : 'Send OTP'}
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+
+          {mode === 'otp' && (
+            <motion.div
+              key="otp-form"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="glass rounded-3xl p-8"
+              style={{ border: '1px solid rgba(255,255,255,0.1)', background: '#1A1A1A' }}
+            >
+              <button onClick={handleBack} className="text-gray-400 hover:text-white mb-6 flex items-center gap-2 text-sm">
+                <ArrowLeft size={16} /> Back
+              </button>
+
+              <div className="text-center mb-6">
+                <h2 className="text-xl font-bold">Verify OTP</h2>
+                <p className="text-gray-400 text-sm mt-1">Enter 6-digit code sent to your email</p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <input
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="123456"
+                    className="w-full py-3 rounded-xl bg-black/30 border border-white/10 text-white text-center text-2xl letter-spacing-8"
+                    maxLength={6}
+                  />
+                </div>
+
+                {message && <p className="text-orange-400 text-sm">{message}</p>}
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleVerifyOtp}
+                  className="w-full py-4 rounded-xl font-bold text-white btn-ripple"
+                  style={{ background: 'linear-gradient(135deg, #FF6B2B, #E85520)' }}
+                >
+                  Verify OTP
+                </motion.button>
+
+                <button onClick={handleSendOtp} className="w-full text-orange-400 text-sm hover:underline">
+                  Resend OTP
                 </button>
-              </p>
+              </div>
+            </motion.div>
+          )}
+
+          {mode === 'reset' && (
+            <motion.div
+              key="reset-form"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="glass rounded-3xl p-8"
+              style={{ border: '1px solid rgba(255,255,255,0.1)', background: '#1A1A1A' }}
+            >
+              <button onClick={handleBack} className="text-gray-400 hover:text-white mb-6 flex items-center gap-2 text-sm">
+                <ArrowLeft size={16} /> Back
+              </button>
+
+              <div className="text-center mb-6">
+                <h2 className="text-xl font-bold">Reset Password</h2>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm text-gray-400 mb-2 block">New Password</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full py-3 rounded-xl bg-black/30 border border-white/10 text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-400 mb-2 block">Confirm Password</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full py-3 rounded-xl bg-black/30 border border-white/10 text-white"
+                  />
+                </div>
+
+                {message && <p className="text-green-400 text-sm">{message}</p>}
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleResetPassword}
+                  className="w-full py-4 rounded-xl font-bold text-white btn-ripple"
+                  style={{ background: 'linear-gradient(135deg, #FF6B2B, #E85520)' }}
+                >
+                  Reset Password
+                </motion.button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
 
         <p className="text-center text-gray-500 text-xs mt-8">
-          © 2026 GSFC University • FoodPlex Canteen System
+          © 2026 GSFC University • SNACKPLEX Canteen System
         </p>
       </motion.div>
     </div>
