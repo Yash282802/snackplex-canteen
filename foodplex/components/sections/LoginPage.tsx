@@ -319,7 +319,6 @@ const handleResetPassword = () => {
                     </button>
                   </p>
                 )}
-                </motion.button>
               </form>
             </motion.div>
           )}
