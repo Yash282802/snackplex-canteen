@@ -26,38 +26,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const savedRole = localStorage.getItem('userRole');
-    const savedEmail = localStorage.getItem('userEmail');
-    if (savedRole) {
-      setUserRole(savedRole as 'student' | 'staff');
-      setUserEmail(savedEmail);
-      setIsLoggedIn(true);
-      setIsLoading(false);
-    } else {
-      setIsLoading(false);
-    }
+    const checkAuth = async () => {
+      try {
+        const res = await api.get('/me');
+        setUserRole(res.data.user.role);
+        setUserEmail(res.data.user.email);
+        setIsLoggedIn(true);
+      } catch (err) {
+        setIsLoggedIn(false);
+        setUserRole(null);
+        setUserEmail(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkAuth();
   }, []);
 
   const login = (role: 'student' | 'staff', email: string) => {
     setUserRole(role);
     setUserEmail(email);
     setIsLoggedIn(true);
-    localStorage.setItem('userRole', role);
-    localStorage.setItem('userEmail', email);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await api.post('/logout');
+    } catch(err) {
+      console.error(err);
+    }
     setUserRole(null);
     setUserEmail(null);
     setIsLoggedIn(false);
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('userEmail');
   };
 
   const switchRole = () => {
     const newRole = userRole === 'student' ? 'staff' : 'student';
     setUserRole(newRole);
-    localStorage.setItem('userRole', newRole);
   };
 
   return (

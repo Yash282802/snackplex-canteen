@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, User, Briefcase, ArrowRight, Lock, Mail, RefreshCw } from 'lucide-react';
+import { Zap, User, Briefcase, ArrowRight, Lock, Mail } from 'lucide-react';
 import axios from 'axios';
 
 type UserRole = 'student' | 'staff' | null;
@@ -14,16 +14,11 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   const [selectedRole, setSelectedRole] = useState<UserRole>(null);
   const [showForm, setShowForm] = useState(false);
   const [isRegister, setIsRegister] = useState(false);
-  const [showForgot, setShowForgot] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [staffSecret, setStaffSecret] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [otp, setOtp] = useState('');
-  const [sentOtp, setSentOtp] = useState('');
-  const [resetStep, setResetStep] = useState(0);
-  const [newPassword, setNewPassword] = useState('');
 
   const handleRoleSelect = (role: 'student' | 'staff') => {
     setSelectedRole(role);
@@ -35,13 +30,10 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     e.preventDefault();
     setIsLoading(true);
     setErrorMsg('');
-
-    // Simple client-side validation when no backend
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
     
     try {
       if (isRegister) {
-        await axios.post(`${apiUrl}/api/auth/signup`, {
+        await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/signup`, {
           email,
           password,
           role: selectedRole,
@@ -49,7 +41,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         });
       }
 
-      await axios.post(`${apiUrl}/api/auth/login`, {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/login`, {
         email,
         password,
         role: selectedRole
@@ -57,32 +49,10 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       
       onLogin(selectedRole!, email);
     } catch (err: any) {
-      // If backend not available, use local validation
-      if (err.message === 'Network Error' || err.code === 'ECONNREFUSED' || (err.response && err.response.status >= 500)) {
-        // Fallback to local validation
-        if (!email || !password) {
-          setErrorMsg('Please enter email and password');
-          setIsLoading(false);
-          return;
-        }
-        if (selectedRole === 'staff') {
-          if (email.toLowerCase() !== 'snackplex@gsfcuniversity.ac.in') {
-            setErrorMsg('Staff must use snackplex@gsfcuniversity.ac.in');
-            setIsLoading(false);
-            return;
-          }
-        }
-        if (!email.includes('@') || !email.includes('.')) {
-          setErrorMsg('Please enter a valid email');
-          setIsLoading(false);
-          return;
-        }
-        // Accept login
-        onLogin(selectedRole!, email);
-      } else if (err.response && err.response.data && err.response.data.error) {
+      if (err.response && err.response.data && err.response.data.error) {
         setErrorMsg(err.response.data.error);
       } else {
-        setErrorMsg('Could not connect to server');
+        setErrorMsg('Network connectivity error. Is your local backend running?');
       }
     } finally {
       setIsLoading(false);
@@ -97,65 +67,6 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     setStaffSecret('');
     setErrorMsg('');
     setIsRegister(false);
-    setShowForgot(false);
-    setResetStep(0);
-    setOtp('');
-    setNewPassword('');
-  };
-
-  const handleSendOtp = async () => {
-    if (!email) {
-      setErrorMsg('Please enter your email');
-      return;
-    }
-    setIsLoading(true);
-    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    setSentOtp(generatedOtp);
-    try {
-      await fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: email,
-          subject: 'Password Reset OTP - SNACKPLEX',
-          html: `<div style="font-family: Arial; padding: 20px; background: #1a1a1a; color: #fff;">
-            <h2 style="color: #FF6B2B;">SNACKPLEX Password Reset</h2>
-            <p>Your OTP is: <strong style="font-size: 24px; color: #22C55E;">${generatedOtp}</strong></p>
-          </div>`
-        })
-      });
-      setResetStep(1);
-      setErrorMsg('OTP sent to your email!');
-    } catch (e) {
-      setResetStep(1);
-      setErrorMsg('OTP: ' + generatedOtp + ' (demo)');
-    }
-    setIsLoading(false);
-  };
-
-  const handleVerifyOtp = () => {
-    if (otp === sentOtp) {
-      setResetStep(2);
-      setErrorMsg('OTP verified! Enter new password.');
-    } else {
-      setErrorMsg('Invalid OTP');
-    }
-  };
-
-  const handleResetPassword = () => {
-    if (newPassword.length < 6) {
-      setErrorMsg('Password must be at least 6 characters');
-      return;
-    }
-    setErrorMsg('Password reset successful! Please login.');
-    setTimeout(() => {
-      setShowForgot(false);
-      setResetStep(0);
-      setEmail('');
-      setPassword('');
-      setNewPassword('');
-      setOtp('');
-    }, 2000);
   };
 
   return (
@@ -347,92 +258,6 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                   {isRegister ? 'Sign In Instead' : 'Register Here'}
                 </button>
               </p>
-
-              {!isRegister && !showForgot && (
-                <p className="text-center text-gray-400 text-sm mt-4">
-                  Forgot Password?{' '}
-                  <button type="button" onClick={() => setShowForgot(true)} className="text-orange-400 hover:underline">
-                    Reset here
-                  </button>
-                </p>
-              )}
-
-              {showForgot && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }} 
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-6 p-4 rounded-xl" 
-                  style={{ background: '#2a2a2a' }}
-                >
-                  <h3 className="font-bold text-white mb-4">Reset Password</h3>
-                  
-                  {resetStep === 0 && (
-                    <div>
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Enter your email"
-                        className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white mb-3"
-                      />
-                      <button
-                        onClick={handleSendOtp}
-                        disabled={isLoading}
-                        className="w-full py-3 rounded-xl font-bold text-white"
-                        style={{ background: 'linear-gradient(135deg, #FF6B2B, #E85520)' }}
-                      >
-                        {isLoading ? 'Sending...' : 'Send OTP'}
-                      </button>
-                    </div>
-                  )}
-
-                  {resetStep === 1 && (
-                    <div>
-                      <input
-                        type="text"
-                        value={otp}
-                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                        placeholder="Enter 6-digit OTP"
-                        className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white mb-3 text-center text-xl"
-                        maxLength={6}
-                      />
-                      <button
-                        onClick={handleVerifyOtp}
-                        className="w-full py-3 rounded-xl font-bold text-white mb-2"
-                        style={{ background: 'linear-gradient(135deg, #FF6B2B, #E85520)' }}
-                      >
-                        Verify OTP
-                      </button>
-                      <button onClick={handleSendOtp} className="text-orange-400 text-sm w-full text-center">
-                        Resend OTP
-                      </button>
-                    </div>
-                  )}
-
-                  {resetStep === 2 && (
-                    <div>
-                      <input
-                        type="password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="New password"
-                        className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 text-white mb-3"
-                      />
-                      <button
-                        onClick={handleResetPassword}
-                        className="w-full py-3 rounded-xl font-bold text-white"
-                        style={{ background: 'linear-gradient(135deg, #22C55E, #16A34A)' }}
-                      >
-                        Reset Password
-                      </button>
-                    </div>
-                  )}
-
-                  <button onClick={handleBack} className="text-gray-400 text-sm mt-3 w-full text-center">
-                    Back to Login
-                  </button>
-                </motion.div>
-              )}
             </motion.div>
           )}
         </AnimatePresence>
