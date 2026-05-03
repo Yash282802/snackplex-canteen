@@ -14,7 +14,7 @@ export interface Order {
 
 interface OrderContextType {
   orders: Order[];
-  addOrder: (email: string, items: Order['items'], total: number, pickupTime: string) => Promise<Order>;
+  addOrder: (email: string, items: Order['items'], total: number, pickupTime: string, existingOrderId?: string) => Promise<Order>;
   updateStatus: (id: string, status: Order['status']) => void;
   getOrderById: (id: string) => Order | undefined;
   refreshOrders: () => Promise<void>;
@@ -134,16 +134,18 @@ export function OrderProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, []);
 
-  const addOrder = async (email: string, items: Order['items'], total: number, pickupTime: string): Promise<Order> => {
-    let backendOrderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+  const addOrder = async (email: string, items: Order['items'], total: number, pickupTime: string, existingOrderId?: string): Promise<Order> => {
+    let backendOrderId = existingOrderId || `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     
-    try {
-      const resp = await axios.post(`${API_BASE_URL}/api/orders/simulate`, {
-        email, items, totalAmount: total, pickupTime, status: 'placed'
-      });
-      if (resp.data.success) backendOrderId = resp.data.order._id;
-    } catch (err) {
-      console.error('Backend simulated order failed:', err);
+    if (!existingOrderId) {
+      try {
+        const resp = await axios.post(`${API_BASE_URL}/api/orders/simulate`, {
+          email, items, totalAmount: total, pickupTime, status: 'placed'
+        });
+        if (resp.data.success) backendOrderId = resp.data.order._id;
+      } catch (err) {
+        console.error('Backend simulated order failed:', err);
+      }
     }
 
     const newOrder: Order = {

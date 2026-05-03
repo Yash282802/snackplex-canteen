@@ -27,11 +27,15 @@ export default function CartDrawer({ open, onClose }: Props) {
         return;
       }
 
+      const orderEmail = userEmail || 'guest@example.com';
+      // Approximate pickup time (15 mins from now)
+      const pickupTime = new Date(Date.now() + 15 * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
       // Create order on your backend
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/payment/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: cart, totalAmount: total }),
+        body: JSON.stringify({ items: cart, totalAmount: total, email: orderEmail, pickupTime }),
       });
       const data = await response.json();
 
@@ -65,11 +69,7 @@ export default function CartDrawer({ open, onClose }: Props) {
           if (verifyResult.success) {
             // ✅ SUCCESS: Create the order in the system which sends the email
             try {
-              const orderEmail = userEmail || 'guest@example.com';
-              // Approximate pickup time (15 mins from now)
-              const pickupTime = new Date(Date.now() + 15 * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-              
-              await addOrder(orderEmail, cart, total, pickupTime);
+              await addOrder(orderEmail, cart, total, pickupTime, data.dbOrderId);
               alert('Payment Successful! Bill sent to your email.');
             } catch (err) {
               console.error('Order creation error:', err);
